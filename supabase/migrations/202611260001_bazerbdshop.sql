@@ -23,7 +23,7 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
-create or replace function public.place_order(items jsonb)
+create or replace function public.place_order(p_items jsonb)
 returns uuid
 language plpgsql
 security definer
@@ -40,11 +40,11 @@ begin
   if v_user is null then
     raise exception 'Please sign in before placing an order';
   end if;
-  if jsonb_typeof(items) <> 'array' or jsonb_array_length(items) = 0 then
+  if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
     raise exception 'Your cart is empty';
   end if;
 
-  for v_item in select * from jsonb_array_elements(items) loop
+  for v_item in select * from jsonb_array_elements(p_items) loop
     v_qty := (v_item->>'quantity')::integer;
     if v_qty is null or v_qty < 1 or v_qty > 100 then
       raise exception 'Invalid quantity';
@@ -63,7 +63,7 @@ begin
   values (v_user, v_total, 'pending')
   returning id into v_order;
 
-  for v_item in select * from jsonb_array_elements(items) loop
+  for v_item in select * from jsonb_array_elements(p_items) loop
     v_qty := (v_item->>'quantity')::integer;
     select * into v_product
       from public.products
